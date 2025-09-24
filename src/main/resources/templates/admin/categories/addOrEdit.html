@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+    layout:decorate="~{admin/layout-admin}">
+
+<head>
+    <title>Thêm/Sửa danh mục</title>
+</head>
+
+<body>
+    <div layout:fragment="content">
+        <div class="container-fluid">
+            <div class="row justify-content-center">
+                <div class="col-md-8">
+                    <div class="card">
+                        <div class="card-header">
+                            <h4 class="mb-0">
+                                <i class="fas fa-edit me-2"></i>
+                                <span th:if="${category.isEdit == true}">Chỉnh sửa danh mục</span>
+                                <span th:unless="${category.isEdit == true}">Thêm danh mục mới</span>
+                            </h4>
+                        </div>
+                        <div class="card-body">
+                            <form th:action="@{/admin/categories/saveOrUpdate}" th:object="${category}" method="post"
+                                novalidate>
+
+                                <!-- Hidden fields -->
+                                <input type="hidden" th:field="*{isEdit}" />
+                                <input type="hidden" th:field="*{categoryId}" />
+
+                                <!-- Category Name -->
+                                <div class="mb-3">
+                                    <label for="name" class="form-label">
+                                        Tên danh mục <span class="text-danger">*</span>
+                                    </label>
+                                    <input type="text" class="form-control" id="name" th:field="*{name}"
+                                        placeholder="Nhập tên danh mục" required>
+                                    <div class="invalid-feedback" th:if="${#fields.hasErrors('name')}"
+                                        th:errors="*{name}">Tên danh mục không hợp lệ</div>
+                                </div>
+
+                                <!-- Các trường khác (mô tả, trạng thái) đã được bỏ vì không có trong CategoryModel -->
+
+                                <!-- Action Buttons -->
+                                <div class="d-flex justify-content-between">
+                                    <a th:href="@{/admin/categories}" class="btn btn-secondary">
+                                        <i class="fas fa-arrow-left me-1"></i>Quay lại
+                                    </a>
+                                    <div>
+                                        <button type="reset" class="btn btn-warning me-2">
+                                            <i class="fas fa-undo me-1"></i>Làm mới
+                                        </button>
+                                        <button type="submit" class="btn btn-primary">
+                                            <i class="fas fa-save me-1"></i>
+                                            <span th:if="${category.isEdit == true}">Cập nhật</span>
+                                            <span th:unless="${category.isEdit == true}">Lưu</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bootstrap validation script -->
+        <script>
+            (function () {
+                'use strict';
+                window.addEventListener('load', function () {
+                    var forms = document.getElementsByClassName('needs-validation');
+                    var validation = Array.prototype.filter.call(forms, function (form) {
+                        form.addEventListener('submit', function (event) {
+                            if (form.checkValidity() === false) {
+                                event.preventDefault();
+                                event.stopPropagation();
+                            }
+                            form.classList.add('was-validated');
+                        }, false);
+                    });
+                }, false);
+            })();
+        </script>
+    </div>
+</body>
+
+</html>

@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{admin/layout-admin}">
+<head>
+    <meta charset="UTF-8">
+    <title>Cập nhật sản phẩm (AJAX)</title>
+    <script th:inline="javascript">
+        /*<![CDATA[*/
+        var contextPath = /*[[@{/}]]*/ '/';
+        if (contextPath && !contextPath.endsWith('/')) { contextPath = contextPath + '/'; }
+        /*]]>*/
+    </script>
+</head>
+<body>
+<div layout:fragment="content" class="container py-3">
+    <!-- Modal Edit Product -->
+    <div class="modal fade" id="editProductModal" tabindex="-1" aria-labelledby="editProductLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <form id="editProduct" method="post" enctype="multipart/form-data">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="editProductLabel">Cập nhật sản phẩm</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+                    </div>
+                    <div class="modal-body">
+                        <input type="hidden" id="edit_productId" name="productId">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label" for="edit_productName">Tên sản phẩm</label>
+                                <input class="form-control" id="edit_productName" name="productName" required>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label" for="edit_unitPrice">Giá</label>
+                                <input type="number" step="0.01" class="form-control" id="edit_unitPrice" name="unitPrice" required>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label" for="edit_discount">Giảm giá</label>
+                                <input type="number" step="0.01" class="form-control" id="edit_discount" name="discount" value="0">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label" for="edit_quantity">Số lượng</label>
+                                <input type="number" class="form-control" id="edit_quantity" name="quantity" value="0" required>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label" for="edit_status">Trạng thái</label>
+                                <select class="form-select" id="edit_status" name="status">
+                                    <option value="1">Kích hoạt</option>
+                                    <option value="0">Ẩn</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label" for="edit_categoryId">Danh mục</label>
+                                <select class="form-select" id="edit_categoryId" name="categoryId" required></select>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label" for="edit_description">Mô tả</label>
+                                <textarea class="form-control" id="edit_description" name="description" rows="3"></textarea>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label" for="edit_imageFile">Hình ảnh (để trống nếu không đổi)</label>
+                                <input type="file" class="form-control" id="edit_imageFile" name="imageFile">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="submit" class="btn btn-warning">Cập nhật</button>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script type="text/javascript">
+        function getQueryParam(name) {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get(name);
+        }
+        function goBackToList() {
+            window.location.href = contextPath + 'admin/products/ajax/list';
+        }
+        function loadCategoriesForSelect(selectSelector, selectedId) {
+            $.getJSON(contextPath + 'api/category', function (json) {
+                var categories = Array.isArray(json) ? json : (json && json.body) ? json.body : [];
+                var opts = categories.map(function (c) {
+                    var sel = (selectedId && (selectedId == c.categoryId)) ? ' selected' : '';
+                    return '<option value="' + c.categoryId + '"' + sel + '>' + (c.categoryName || ('ID ' + c.categoryId)) + '</option>';
+                });
+                $(selectSelector).html(opts.join(''));
+            }).fail(function () {
+                $(selectSelector).html('<option value="">--Không tải được danh mục--</option>');
+            });
+        }
+        $(document).ready(function () {
+            var id = getQueryParam('id');
+            if (!id) {
+                alert('Thiếu tham số id');
+                return goBackToList();
+            }
+            // Load product detail from API
+            $.ajax({
+                url: contextPath + 'api/products/getProduct',
+                type: 'POST',
+                dataType: 'json',
+                data: { id: id },
+                success: function (resp) {
+                    var p = (resp && resp.body) ? resp.body : (Array.isArray(resp) ? resp[0] : resp);
+                    if (!p) {
+                        alert('Không tìm thấy dữ liệu Product');
+                        return goBackToList();
+                    }
+                    $('#edit_productId').val(p.productId);
+                    $('#edit_productName').val(p.productName || '');
+                    $('#edit_unitPrice').val(p.unitPrice || 0);
+                    $('#edit_discount').val(p.discount || 0);
+                    $('#edit_quantity').val(p.quantity || 0);
+                    $('#edit_status').val(p.status || 1);
+                    $('#edit_description').val(p.description || '');
+                    loadCategoriesForSelect('#edit_categoryId', p.category ? p.category.categoryId : null);
+                    try {
+                        var editEl = document.getElementById('editProductModal');
+                        var modal = bootstrap.Modal.getInstance(editEl) || new bootstrap.Modal(editEl);
+                        modal.show();
+                    } catch (e) {
+                        $('#editProductModal').modal('show');
+                    }
+                },
+                error: function () {
+                    alert('Lỗi tải dữ liệu');
+                    goBackToList();
+                }
+            });
+
+            // Submit update form
+            $('form#editProduct').on('submit', function (e) {
+                e.preventDefault();
+                var formData = new FormData(this);
+                $.ajax({
+                    url: contextPath + 'api/products/updateProduct',
+                    type: 'POST',
+                    dataType: 'json',
+                    data: formData,
+                    success: function (res) {
+                        if (res && (res.status === true || res.status === 'true')) {
+                            try {
+                                var editEl = document.getElementById('editProductModal');
+                                var modal = bootstrap.Modal.getInstance(editEl) || new bootstrap.Modal(editEl);
+                                modal.hide();
+                            } catch (e) {
+                                $('#editProductModal').modal('hide');
+                            }
+                            goBackToList();
+                        } else {
+                            alert(res && res.message ? res.message : 'Cập nhật thất bại');
+                        }
+                    },
+                    error: function (xhr) {
+                        if (xhr.status === 405 || xhr.status === 404) {
+                            // Retry with PUT if POST not allowed
+                            $.ajax({
+                                url: contextPath + 'api/products/updateProduct',
+                                type: 'PUT',
+                                dataType: 'json',
+                                data: formData,
+                                success: function (res2) {
+                                    if (res2 && (res2.status === true || res2.status === 'true')) {
+                                        goBackToList();
+                                    } else {
+                                        alert(res2 && res2.message ? res2.message : 'Cập nhật thất bại');
+                                    }
+                                },
+                                cache: false,
+                                contentType: false,
+                                processData: false
+                            });
+                            return;
+                        }
+                        alert('Lỗi gọi API: ' + (xhr.responseText || xhr.status));
+                    },
+                    cache: false,
+                    contentType: false,
+                    processData: false
+                });
+            });
+
+            $('#editProductModal').on('hidden.bs.modal', function () {
+                goBackToList();
+            });
+        });
+    </script>
+</div>
+</body>
+</html>

@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{admin/layout-admin.html}">
+<head>
+  <meta charset="UTF-8" />
+  <title th:text="${category.isEdit} ? 'Edit Category' : 'Add New Category'">Add New Category</title>
+</head>
+<body>
+<section class="row" layout:fragment="content">
+  <div class="col-6 offset-3 mt-4">
+    <form th:action="@{/admin/categories/saveOrUpdate}" method="post" th:object="${category}">
+      <div class="card">
+        <div class="card-header">
+          <h2 th:text="${category.isEdit} ? 'Edit Category' : 'Add New Category'">Add New Category</h2>
+        </div>
+        <div class="card-body">
+          <input type="hidden" th:field="*{isEdit}" />
+          <div class="mb-3" th:if="${category.isEdit}">
+            <label for="categoryId" class="form-label">Category ID:</label>
+            <input type="text" readonly class="form-control" th:field="*{categoryId}" id="categoryId"
+                   aria-describedby="categoryIdHelp" placeholder="Category ID" />
+            <div th:if="${#fields.hasErrors('categoryId')}" id="categoryIdHelp" class="form-text text-muted">
+              <span class="text-danger">Category ID is required!</span>
+            </div>
+          </div>
+          <div class="mb-3">
+            <label for="name" class="form-label">Category Name:</label>
+            <input type="text" class="form-control" th:field="*{name}" id="name"
+                   aria-describedby="nameHelp" placeholder="Category Name" />
+            <div th:if="${#fields.hasErrors('name')}" id="nameHelp" class="form-text text-muted">
+              <span class="text-danger" th:errors="*{name}">Category name is required</span>
+            </div>
+          </div>
+          <div class="text-end">
+            <button type="submit" class="btn btn-primary" th:text="${category.isEdit} ? 'Update' : 'Save'">Save</button>
+          </div>
+        </div>
+      </div>
+    </form>
+  </div>
+</section>
+</body>
+</html>

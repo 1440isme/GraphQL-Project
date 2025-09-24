@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{admin/layout-admin}">
+<head>
+    <meta charset="UTF-8">
+    <title>Danh sách danh mục (AJAX)</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css"
+          rel="stylesheet" crossorigin="anonymous">
+    <link rel="stylesheet"
+          href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+          crossorigin="anonymous" referrerpolicy="no-referrer">
+    <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+    <script th:inline="javascript">
+        /*<![CDATA[*/
+        var contextPath = /*[[@{/}]]*/ '/';
+        if (contextPath && !contextPath.endsWith('/')) { contextPath = contextPath + '/'; }
+        /*]]>*/
+    </script>
+</head>
+<body>
+<div layout:fragment="content" class="container-fluid py-3">
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h4 class="mb-0">
+                <i class="fas fa-list me-2"></i>Danh sách danh mục
+            </h4>
+            <div class="d-flex gap-2">
+                <button type="button" class="btn btn-primary" onclick="showCreateNewCategoryModal()">
+                    <i class="fas fa-plus me-1"></i>Thêm danh mục
+                </button>
+                <a th:href="@{/admin/categories/search}" class="btn btn-info">
+                    <i class="fas fa-search me-1"></i>Tìm kiếm
+                </a>
+            </div>
+        </div>
+        <div class="card-body">
+            <table class="table table-striped table-hover">
+                <thead class="table-dark">
+                <tr>
+                    <th>ID</th>
+                    <th>Icon</th>
+                    <th>Tên danh mục</th>
+                    <th>Thao tác</th>
+                </tr>
+                </thead>
+                <tbody id="categories-tbody">
+                <!-- dữ liệu sẽ được render bằng AJAX -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+<!-- Modal Add Category -->
+<div class="modal fade" id="createCategoryModal" tabindex="-1" aria-labelledby="createCategoryLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="addCategory" method="post" enctype="multipart/form-data">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="createCategoryLabel">Thêm danh mục</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="new_categoryname" class="form-label">Tên danh mục</label>
+                        <input type="text" class="form-control" id="new_categoryname" name="categoryName">
+                    </div>
+                    <div class="mb-3">
+                        <label for="new_icon" class="form-label">Icon</label>
+                        <input type="file" class="form-control" id="new_icon" name="icon">
+                    </div>
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary">Thêm</button>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Scripts -->
+<script type="text/javascript">
+    $(document).ready(function () {
+        loadCategories();
+
+        // Submit add form via AJAX
+        $("form#addCategory").submit(function (e) {
+            e.preventDefault();
+            var formData = new FormData(this);
+            $.ajax({
+                url: contextPath + 'api/category/addCategory',
+                type: 'POST',
+                dataType: "json",
+                data: formData,
+                success: function (res) {
+                    if (res && (res.status === true || res.status === 'true')) {
+                        try {
+                            var createModalEl = document.getElementById('createCategoryModal');
+                            if (createModalEl) {
+                                var modal = bootstrap.Modal.getInstance(createModalEl) || new bootstrap.Modal(createModalEl);
+                                modal.hide();
+                            }
+                        } catch (e) {
+                            $('#createCategoryModal').modal('hide');
+                        }
+                        loadCategories();
+                    } else {
+                        alert(res && res.message ? res.message : 'Có lỗi xảy ra');
+                    }
+                },
+                error: function (xhr) {
+                    alert('Lỗi gọi API: ' + (xhr.responseText || xhr.status));
+                },
+                cache: false,
+                contentType: false,
+                processData: false
+            });
+        });
+
+        // Delegated navigation for Edit/Delete buttons
+        $('#categories-tbody').on('click', 'a.btn-edit', function (e) {
+            e.preventDefault();
+            var id = $(this).data('id');
+            if (id != null) {
+                window.location.href = contextPath + 'admin/categories/ajax/update?id=' + encodeURIComponent(id);
+            }
+        });
+        $('#categories-tbody').on('click', 'a.btn-delete', function (e) {
+            e.preventDefault();
+            var id = $(this).data('id');
+            if (id != null) {
+                window.location.href = contextPath + 'admin/categories/ajax/delete?id=' + encodeURIComponent(id);
+            }
+        });
+
+    });
+
+    function loadCategories() {
+        $.getJSON(contextPath + 'api/category', function (json) {
+            console.log("API response:", json); // xem dữ liệu
+            var categories = Array.isArray(json) ? json : (json && json.body) ? json.body : [];
+            console.log("Categories:", categories);
+
+            var rows = [];
+            categories.forEach(c => {
+                rows.push('<tr>');
+                rows.push('<td>' + (c.categoryId ?? '') + '</td>');
+                rows.push('<td>' + (c.icon
+                    ? '<img src="' + contextPath + 'admin/categories/images/' + c.icon + '" style="width:70px">'
+                    : '<span class="text-muted">No icon</span>') + '</td>');
+                rows.push('<td>' + (c.categoryName ?? '') + '</td>');
+                rows.push('<td>' +
+                    '<a href="#" data-id="' + c.categoryId + '" class="btn btn-outline-warning me-1 btn-edit" title="Sửa"><i class="fa fa-edit"></i></a>' +
+                    '<a href="#" data-id="' + c.categoryId + '" class="btn btn-outline-danger btn-delete" title="Xóa"><i class="fa fa-trash"></i></a>' +
+                    '</td>');
+                rows.push('</tr>');
+            });
+            $('#categories-tbody').html(rows.join(''));
+        }).fail(function (xhr, status, error) {
+            console.error("AJAX error:", status, error);
+        });
+    }
+
+    function showCreateNewCategoryModal() {
+        $('#new_categoryname').val('');
+        $('#new_icon').val('');
+        $('#createCategoryModal').modal('show');
+    }
+</script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
+</div>
+</body>
+</html>

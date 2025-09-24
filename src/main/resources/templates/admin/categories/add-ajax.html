@@ -1,0 +1,52 @@
+<!-- Modal Add Category -->
+<div class="modal fade" id="createCategoryModal" tabindex="-1" aria-labelledby="createCategoryLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="addCategory" method="post" enctype="multipart/form-data">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="createCategoryLabel">Add Category</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="new_categoryname" class="form-label">Category Name</label>
+                        <input type="text" class="form-control" id="new_categoryname" name="categoryName">
+                    </div>
+                    <div class="mb-3">
+                        <label for="new_icon" class="form-label">Icon</label>
+                        <input type="file" class="form-control" id="new_icon" name="icon">
+                    </div>
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary">Add</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    $("form#addCategory").submit(function (e) {
+        e.preventDefault();
+        var formData = new FormData(this);
+        $.ajax({
+            url: contextPath + 'api/category/addCategory',
+            type: 'POST',
+            dataType: "json",
+            data: formData,
+            success: function () {
+                $('#createCategoryModal').modal('hide');
+                loadCategories();
+            },
+            cache: false,
+            contentType: false,
+            processData: false
+        });
+    });
+
+    function showCreateNewCategoryModal() {
+        $('#new_categoryname').val('');
+        $('#new_icon').val('');
+        $('#createCategoryModal').modal('show');
+    }
+</script>

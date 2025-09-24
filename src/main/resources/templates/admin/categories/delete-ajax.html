@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{admin/layout-admin}">
+<head>
+    <meta charset="UTF-8">
+    <title>Xóa danh mục (AJAX)</title>
+    <script th:inline="javascript">
+        /*<![CDATA[*/
+        var contextPath = /*[[@{/}]]*/ '/';
+        if (contextPath && !contextPath.endsWith('/')) { contextPath = contextPath + '/'; }
+        /*]]>*/
+    </script>
+</head>
+<body>
+<div layout:fragment="content" class="container py-3">
+    <!-- Modal Delete Category -->
+    <div class="modal fade" id="deleteCategoryModal" tabindex="-1" aria-labelledby="deleteCategoryLabel" aria-hidden="true">
+        <div class="modal-dialog modal-sm">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="deleteCategoryLabel">Xác nhận xóa</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Bạn có chắc chắn muốn xóa category này?</p>
+                    <input type="hidden" id="delete_categoryid">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-danger" id="btnConfirmDelete">Xóa</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="text/javascript">
+        function getQueryParam(name) {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get(name);
+        }
+        function goBackToList() {
+            window.location.href = contextPath + 'admin/categories/ajax/list';
+        }
+
+        $(document).ready(function () {
+            var id = getQueryParam('id');
+            if (!id) {
+                alert('Thiếu tham số id');
+                return goBackToList();
+            }
+            $('#delete_categoryid').val(id);
+            try {
+                var delEl = document.getElementById('deleteCategoryModal');
+                var modal = bootstrap.Modal.getInstance(delEl) || new bootstrap.Modal(delEl);
+                modal.show();
+            } catch (e) {
+                $('#deleteCategoryModal').modal('show');
+            }
+
+            $('#btnConfirmDelete').on('click', function () {
+                var idDel = $('#delete_categoryid').val();
+                $.ajax({
+                    url: contextPath + 'api/category/deleteCategory?categoryId=' + encodeURIComponent(idDel),
+                    type: 'DELETE',
+                    dataType: 'json',
+                    success: function (res) {
+                        if (res && (res.status === true || res.status === 'true')) {
+                            try {
+                                var delEl2 = document.getElementById('deleteCategoryModal');
+                                var modal2 = bootstrap.Modal.getInstance(delEl2) || new bootstrap.Modal(delEl2);
+                                modal2.hide();
+                            } catch (e) {
+                                $('#deleteCategoryModal').modal('hide');
+                            }
+                            goBackToList();
+                        } else {
+                            alert(res && res.message ? res.message : 'Xóa thất bại');
+                        }
+                    },
+                    error: function (xhr) {
+                        alert('Lỗi gọi API: ' + (xhr.responseText || xhr.status));
+                    }
+                });
+            });
+
+            $('#deleteCategoryModal').on('hidden.bs.modal', function () {
+                goBackToList();
+            });
+        });
+    </script>
+</div>
+</body>
+</html>
