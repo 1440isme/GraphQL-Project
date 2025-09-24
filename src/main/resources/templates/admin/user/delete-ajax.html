@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{admin/layout-admin}">
+<head>
+    <meta charset="UTF-8">
+    <title>Xóa người dùng (AJAX + GraphQL)</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" crossorigin="anonymous">
+    <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+    <script th:inline="javascript">
+        /*<![CDATA[*/
+        var contextPath = /*[[@{/}]]*/ '/';
+        if (contextPath && !contextPath.endsWith('/')) { contextPath = contextPath + '/'; }
+        var graphqlEndpoint = contextPath + 'graphql';
+        /*]]>*/
+    </script>
+</head>
+<body>
+<div layout:fragment="content" class="container py-4">
+    <div class="card">
+        <div class="card-header">
+            <h5>Xóa người dùng</h5>
+        </div>
+        <div class="card-body">
+            <p class="mb-3">Bạn có chắc muốn xóa người dùng này?</p>
+            <div id="userInfo" class="mb-3 text-muted"></div>
+            <div class="d-flex gap-2">
+                <button id="btnDelete" class="btn btn-danger">Xóa</button>
+                <a th:href="@{/admin/users/ajax/list}" class="btn btn-secondary">Hủy</a>
+            </div>
+        </div>
+    </div>
+</div>
+<script type="text/javascript">
+    var globalId = null;
+    $(function(){
+        var params = new URLSearchParams(window.location.search);
+        var id = params.get('id');
+        if (!id) { alert('Thiếu id'); window.location.href = contextPath + 'admin/users/ajax/list'; return; }
+        globalId = id;
+        gqlRequest(`query($id: ID!){ userById(id: $id){ userId userName fullName email phone } }`, {id:id})
+            .then(function(data){
+                var u = data && data.userById;
+                if (!u) { $('#userInfo').text('Không tìm thấy người dùng'); return; }
+                $('#userInfo').html('ID: <b>' + u.userId + '</b> - ' + (u.fullName || u.userName || ''));
+            })
+            .catch(function(err){ console.error(err); });
+        $('#btnDelete').on('click', function(){
+            gqlRequest(`mutation($id: ID!){ deleteUser(id: $id) }`, {id: globalId})
+                .then(function(){
+                    alert('Đã xóa');
+                    window.location.href = contextPath + 'admin/users/ajax/list';
+                })
+                .catch(function(err){ alert('Lỗi: ' + err); });
+        });
+    });
+    function gqlRequest(query, variables) {
+        return $.ajax({
+            url: graphqlEndpoint,
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({ query: query, variables: variables || {} })
+        }).then(function (res) {
+            if (res.errors) { throw (res.errors[0] && res.errors[0].message) || 'GraphQL error'; }
+            return res.data;
+        });
+    }
+</script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
+</body>
+</html>

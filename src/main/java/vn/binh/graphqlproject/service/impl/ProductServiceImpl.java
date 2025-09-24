@@ -5,12 +5,11 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
-import org.thymeleaf.util.StringUtils;
-import vn.binh.springbootsproject.entity.Product;
-import vn.binh.springbootsproject.repository.ProductRepository;
-import vn.binh.springbootsproject.service.IProductService;
+import vn.binh.graphqlproject.entity.Category;
+import vn.binh.graphqlproject.entity.Product;
+import vn.binh.graphqlproject.repository.ProductRepository;
+import vn.binh.graphqlproject.service.IProductService;
 
-import java.sql.Timestamp;
 import java.util.List;
 import java.util.Optional;
 
@@ -73,10 +72,7 @@ public class ProductServiceImpl implements IProductService {
             return productRepository.save(entity);
         } else {
             Optional<Product> optImages = findById(entity.getProductId());
-            if (StringUtils.isEmpty(entity.getImages())) {
-                entity.setImages(optImages.get().getImages());
-            } else
-                entity.setImages(entity.getImages());
+
         }
         return productRepository.save(entity);
     }
@@ -91,14 +87,17 @@ public class ProductServiceImpl implements IProductService {
         return productRepository.findByProductNameContaining(name, pageable);
     }
 
-    @Override
-    public Optional<Product> findByCreateDate(Timestamp timestamp) {
-        return productRepository.findByCreateDate(timestamp);
-    }
 
     @Override
     public Optional<Product> findByProductName(String productName) {
         return productRepository.findByProductName(productName);
     }
+
+    @Override
+    public List<Product> findByCategoryId(Long categoryId) {
+         return productRepository.findByCategoryCategoryId(categoryId);
+    }
+
+
 
 }

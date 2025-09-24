@@ -4,11 +4,12 @@
       layout:decorate="~{admin/layout-admin}">
 <head>
     <meta charset="UTF-8">
-    <title>Xóa sản phẩm (AJAX)</title>
+    <title>Xóa sản phẩm (AJAX + GraphQL)</title>
     <script th:inline="javascript">
         /*<![CDATA[*/
         var contextPath = /*[[@{/}]]*/ '/';
         if (contextPath && !contextPath.endsWith('/')) { contextPath = contextPath + '/'; }
+        var graphqlEndpoint = contextPath + 'graphql';
         /*]]>*/
     </script>
 </head>
@@ -35,6 +36,19 @@
     </div>
 
     <script type="text/javascript">
+        function gqlRequest(query, variables) {
+            return $.ajax({
+                url: graphqlEndpoint,
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({ query: query, variables: variables || {} })
+            }).then(function (res) {
+                if (res.errors) {
+                    throw (res.errors[0] && res.errors[0].message) || 'GraphQL error';
+                }
+                return res.data;
+            });
+        }
         function getQueryParam(name) {
             const urlParams = new URLSearchParams(window.location.search);
             return urlParams.get(name);
@@ -59,12 +73,10 @@
 
             $('#btnConfirmDelete').on('click', function () {
                 var idDel = $('#delete_productid').val();
-                $.ajax({
-                    url: contextPath + 'api/products/deleteProduct?productId=' + encodeURIComponent(idDel),
-                    type: 'DELETE',
-                    dataType: 'json',
-                    success: function (res) {
-                        if (res && (res.status === true || res.status === 'true')) {
+                gqlRequest(`mutation($id: ID!){ deleteProduct(id: $id) }`, { id: idDel })
+                    .then(function (data) {
+                        var ok = data && data.deleteProduct === true;
+                        if (ok) {
                             try {
                                 var delEl2 = document.getElementById('deleteProductModal');
                                 var modal2 = bootstrap.Modal.getInstance(delEl2) || new bootstrap.Modal(delEl2);
@@ -74,13 +86,10 @@
                             }
                             goBackToList();
                         } else {
-                            alert(res && res.message ? res.message : 'Xóa thất bại');
+                            alert('Xóa thất bại');
                         }
-                    },
-                    error: function (xhr) {
-                        alert('Lỗi gọi API: ' + (xhr.responseText || xhr.status));
-                    }
-                });
+                    })
+                    .catch(function (err) { alert('Lỗi: ' + err); });
             });
 
             $('#deleteProductModal').on('hidden.bs.modal', function () {

@@ -15,6 +15,7 @@
         /*<![CDATA[*/
         var contextPath = /*[[@{/}]]*/ '/';
         if (contextPath && !contextPath.endsWith('/')) { contextPath = contextPath + '/'; }
+        var graphqlEndpoint = contextPath + 'graphql';
         /*]]>*/
     </script>
 </head>
@@ -111,9 +112,7 @@
                         alert(res && res.message ? res.message : 'Có lỗi xảy ra');
                     }
                 },
-                error: function (xhr) {
-                    alert('Lỗi gọi API: ' + (xhr.responseText || xhr.status));
-                },
+
                 cache: false,
                 contentType: false,
                 processData: false
@@ -137,6 +136,48 @@
         });
 
     });
+    function gqlRequest(query, variables) {
+        return $.ajax({
+            url: graphqlEndpoint,
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({ query: query, variables: variables || {} })
+        }).then(function (res) {
+            if (res.errors) {
+                throw (res.errors[0] && res.errors[0].message) || 'GraphQL error';
+            }
+            return res.data;
+        });
+    }
+
+    $("form#addCategory").submit(function (e) {
+        e.preventDefault();
+        const variables = { input: { categoryName: $('#new_categoryname').val(), images: $('#new_images').val() } };
+        gqlRequest("mutation($input: CategoryInput!){ createCategory(input: $input){ categoryId categoryName images } }", variables)
+            .then(function(){
+                try {
+                    var el = document.getElementById('createCategoryModal');
+                    var modal = bootstrap.Modal.getInstance(el) || new bootstrap.Modal(el);
+                    modal.hide();
+                } catch (e) {
+                    $('#createCategoryModal').modal('hide');
+                }
+                if (typeof loadCategories === 'function') loadCategories();
+            })
+            .catch(function(err){ alert('Error: ' + err); });
+    });
+
+    function showCreateNewCategoryModal() {
+        $('#new_categoryname').val('');
+        $('#new_images').val('');
+        try {
+            var el = document.getElementById('createCategoryModal');
+            var modal = bootstrap.Modal.getInstance(el) || new bootstrap.Modal(el);
+            modal.show();
+        } catch (e) {
+            $('#createCategoryModal').modal('show');
+        }
+    }
 
     function loadCategories() {
         $.getJSON(contextPath + 'api/category', function (json) {
@@ -164,11 +205,6 @@
         });
     }
 
-    function showCreateNewCategoryModal() {
-        $('#new_categoryname').val('');
-        $('#new_icon').val('');
-        $('#createCategoryModal').modal('show');
-    }
 </script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
 </div>

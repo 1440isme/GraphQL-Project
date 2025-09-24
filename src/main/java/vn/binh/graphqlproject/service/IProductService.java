@@ -3,7 +3,8 @@ package vn.binh.graphqlproject.service;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
-import vn.binh.springbootsproject.entity.Product;
+import vn.binh.graphqlproject.entity.Category;
+import vn.binh.graphqlproject.entity.Product;
 
 import java.sql.Timestamp;
 import java.util.List;
@@ -23,7 +24,8 @@ public interface IProductService {
     List<Product> findByNameContaining(String name);
     Page<Product> findByNameContaining(String name, Pageable pageable);
 
-    Optional<Product> findByCreateDate(Timestamp timestamp);
 
     Optional<Product> findByProductName(String productName);
+
+    List<Product> findByCategoryId(Long categoryId);
 }

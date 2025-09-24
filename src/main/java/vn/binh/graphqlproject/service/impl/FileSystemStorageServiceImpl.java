@@ -5,9 +5,9 @@ import org.springframework.core.io.UrlResource;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
-import vn.binh.springbootsproject.Exception.StorageException;
-import vn.binh.springbootsproject.config.StorageProperties;
-import vn.binh.springbootsproject.service.IStorageService;
+import vn.binh.graphqlproject.Exception.StorageException;
+import vn.binh.graphqlproject.config.StorageProperties;
+import vn.binh.graphqlproject.service.IStorageService;
 
 import java.io.InputStream;
 import java.nio.file.Files;

@@ -7,9 +7,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
-import vn.binh.springbootsproject.entity.Category;
-import vn.binh.springbootsproject.repository.CategoryRepository;
-import vn.binh.springbootsproject.service.ICategoryService;
+import vn.binh.graphqlproject.entity.Category;
+import vn.binh.graphqlproject.repository.CategoryRepository;
+import vn.binh.graphqlproject.service.ICategoryService;
 
 import java.util.List;
 import java.util.Optional;
@@ -26,11 +26,11 @@ public class CategoryServiceImpl implements ICategoryService{
         }else {
             Optional<Category> opt = findById(entity.getCategoryId());
             if(opt.isPresent()) {
-                if (StringUtils.isEmpty(entity.getIcon())) {
-                    entity.setIcon(opt.get().getIcon());
+                if (StringUtils.isEmpty(entity.getImages())) {
+                    entity.setImages(opt.get().getImages());
                 }else {
 
-                    entity.setIcon(entity.getIcon());
+                    entity.setImages(entity.getImages());
                 }
             }
             return categoryRepository.save(entity);

@@ -1,4 +1,4 @@
-package vn.binh.graphqlproject.controller.api;
+package vn.binh.graphqlproject.controller.admin.api;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -6,10 +6,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-import vn.binh.springbootsproject.entity.Category;
-import vn.binh.springbootsproject.model.Response;
-import vn.binh.springbootsproject.service.ICategoryService;
-import vn.binh.springbootsproject.service.IStorageService;
+import vn.binh.graphqlproject.entity.Category;
+import vn.binh.graphqlproject.model.Response;
+import vn.binh.graphqlproject.service.ICategoryService;
+import vn.binh.graphqlproject.service.IStorageService;
 
 import java.util.Optional;
 import java.util.UUID;
@@ -55,9 +55,9 @@ public class CategoryAPIController {
                 UUID uuid = UUID.randomUUID();
                 String uuString = uuid.toString();
 //lưu file vào trường Images
-                category.setIcon(storageService.getStorageFilename(icon,
+                category.setImages(storageService.getStorageFilename(icon,
                         uuString));
-                storageService.store(icon, category.getIcon());
+                storageService.store(icon, category.getImages());
             }
             category.setCategoryName(categoryName);
             categoryService.save(category);
@@ -79,9 +79,9 @@ public class CategoryAPIController {
                 UUID uuid = UUID.randomUUID();
                 String uuString = uuid.toString();
 //lưu file vào trường Images
-                optCategory.get().setIcon(storageService.getStorageFilename(icon, uuString));
+                optCategory.get().setImages(storageService.getStorageFilename(icon, uuString));
                 storageService.store(icon,
-                        optCategory.get().getIcon());
+                        optCategory.get().getImages());
             }
             optCategory.get().setCategoryName(categoryName);
             categoryService.save(optCategory.get());

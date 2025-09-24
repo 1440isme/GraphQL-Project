@@ -1,4 +1,4 @@
-package vn.binh.graphqlproject.controller.api;
+package vn.binh.graphqlproject.controller.admin.api;
 
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -7,12 +7,12 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-import vn.binh.springbootsproject.entity.Category;
-import vn.binh.springbootsproject.entity.Product;
-import vn.binh.springbootsproject.model.Response;
-import vn.binh.springbootsproject.service.ICategoryService;
-import vn.binh.springbootsproject.service.IProductService;
-import vn.binh.springbootsproject.service.IStorageService;
+import vn.binh.graphqlproject.entity.Category;
+import vn.binh.graphqlproject.entity.Product;
+import vn.binh.graphqlproject.model.Response;
+import vn.binh.graphqlproject.service.ICategoryService;
+import vn.binh.graphqlproject.service.IProductService;
+import vn.binh.graphqlproject.service.IStorageService;
 
 import java.sql.Timestamp;
 import java.util.Date;
@@ -35,13 +35,13 @@ public class ProductAPIController {
     @PostMapping(path = "/addProduct")
     public ResponseEntity<?> addProduct(
             @Validated @RequestParam("productName") String productName,
-            @RequestParam(value = "imageFile", required = false) MultipartFile imageFile,
+
             @Validated @RequestParam("unitPrice") Double unitPrice,
-            @Validated @RequestParam("discount") Double discount,
+
             @Validated @RequestParam("description") String description,
             @Validated @RequestParam("categoryId") Long categoryId,
-            @Validated @RequestParam("quantity") Integer quantity,
-            @Validated @RequestParam("status") Short status) {
+            @Validated @RequestParam("quantity") Integer quantity)
+             {
         Optional<Product> optProduct = productService.findByProductName(productName);
         if (optProduct.isPresent()) {
             return new ResponseEntity<Response>(
@@ -52,22 +52,16 @@ public class ProductAPIController {
         try {
             product.setProductName(productName);
             product.setUnitPrice(unitPrice);
-            product.setDiscount(discount);
+
             product.setDescription(description);
             product.setQuantity(quantity);
-            product.setStatus(status);
+
             Category cateEntity = new Category();
             cateEntity.setCategoryId(categoryId);
             product.setCategory(cateEntity);
-            if (imageFile != null && !imageFile.isEmpty()) {
-                UUID uuid = UUID.randomUUID();
-                String uuString = uuid.toString();
-                product.setImages(storageService.getStorageFilename(imageFile, uuString));
-                storageService.store(imageFile, product.getImages());
-            }
-            product.setCreateDate(timestamp);
+
             productService.save(product);
-            optProduct = productService.findByCreateDate(timestamp);
+
         } catch (Exception e) {
             e.printStackTrace();
             return new ResponseEntity<Response>(new Response(false, "Lỗi lưu sản phẩm", null), HttpStatus.INTERNAL_SERVER_ERROR);
@@ -88,13 +82,10 @@ public class ProductAPIController {
     public ResponseEntity<?> updateProduct(
             @Validated @RequestParam("productId") Long productId,
             @Validated @RequestParam("productName") String productName,
-            @RequestParam(value = "imageFile", required = false) MultipartFile imageFile,
             @Validated @RequestParam("unitPrice") Double unitPrice,
-            @Validated @RequestParam("discount") Double discount,
             @Validated @RequestParam("description") String description,
             @Validated @RequestParam("categoryId") Long categoryId,
-            @Validated @RequestParam("quantity") Integer quantity,
-            @Validated @RequestParam("status") Short status) {
+            @Validated @RequestParam("quantity") Integer quantity) {
         Optional<Product> opt = productService.findById(productId);
         if (opt.isEmpty()) {
             return new ResponseEntity<Response>(new Response(false, "Không tìm thấy sản phẩm", null), HttpStatus.BAD_REQUEST);
@@ -103,19 +94,14 @@ public class ProductAPIController {
             Product p = opt.get();
             p.setProductName(productName);
             p.setUnitPrice(unitPrice);
-            p.setDiscount(discount);
+
             p.setDescription(description);
             p.setQuantity(quantity);
-            p.setStatus(status);
+
             Category cateEntity = new Category();
             cateEntity.setCategoryId(categoryId);
             p.setCategory(cateEntity);
-            if (imageFile != null && !imageFile.isEmpty()) {
-                UUID uuid = UUID.randomUUID();
-                String uuString = uuid.toString();
-                p.setImages(storageService.getStorageFilename(imageFile, uuString));
-                storageService.store(imageFile, p.getImages());
-            }
+
             productService.save(p);
             return new ResponseEntity<Response>(new Response(true, "Cập nhật thành công", p), HttpStatus.OK);
         } catch (Exception e) {
