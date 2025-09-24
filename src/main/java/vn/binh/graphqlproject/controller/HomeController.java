@@ -8,6 +8,6 @@ public class HomeController {
 
     @GetMapping({ "/", "/home" })
     public String home() {
-        return "redirect:/api/category";
+        return "redirect:/admin/products/ajax/list";
     }
 }
