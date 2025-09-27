@@ -83,21 +83,47 @@
 </div>
 
 <!-- Scripts -->
-<script type="text/javascript">
-    $(document).ready(function () {
-        loadCategories();
+    <script type="text/javascript">
+        $(document).ready(function () {
+            loadCategories();
 
-        // Submit add form via AJAX
-        $("form#addCategory").submit(function (e) {
-            e.preventDefault();
-            var formData = new FormData(this);
-            $.ajax({
-                url: contextPath + 'api/category/addCategory',
-                type: 'POST',
-                dataType: "json",
-                data: formData,
-                success: function (res) {
-                    if (res && (res.status === true || res.status === 'true')) {
+            $("form#addCategory").submit(function (e) {
+                e.preventDefault();
+
+                const categoryName = $('#new_categoryname').val();
+                const iconFile = $('#new_icon')[0].files[0];
+
+                let imageData = '';
+                if (iconFile) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        imageData = e.target.result;
+                        submitCategory(categoryName, imageData);
+                    };
+                    reader.readAsDataURL(iconFile);
+                } else {
+                    submitCategory(categoryName, '');
+                }
+            });
+
+            function submitCategory(categoryName, images) {
+                const variables = {
+                    input: {
+                        categoryName: categoryName,
+                        images: images
+                    }
+                };
+
+                gqlRequest(`
+                mutation($input: CategoryInput!) {
+                    createCategory(input: $input) {
+                        categoryId
+                        categoryName
+                        images
+                    }
+                }`, variables)
+                    .then(function(data) {
+                        console.log("GraphQL response:", data);
                         try {
                             var createModalEl = document.getElementById('createCategoryModal');
                             if (createModalEl) {
@@ -107,105 +133,101 @@
                         } catch (e) {
                             $('#createCategoryModal').modal('hide');
                         }
+                        // Clear form
+                        $('#new_categoryname').val('');
+                        $('#new_icon').val('');
                         loadCategories();
-                    } else {
-                        alert(res && res.message ? res.message : 'Có lỗi xảy ra');
-                    }
-                },
-
-                cache: false,
-                contentType: false,
-                processData: false
-            });
-        });
-
-        // Delegated navigation for Edit/Delete buttons
-        $('#categories-tbody').on('click', 'a.btn-edit', function (e) {
-            e.preventDefault();
-            var id = $(this).data('id');
-            if (id != null) {
-                window.location.href = contextPath + 'admin/categories/ajax/update?id=' + encodeURIComponent(id);
+                    })
+                    .catch(function(err) {
+                        console.error("GraphQL error:", err);
+                        alert('Lỗi: ' + err);
+                    });
             }
-        });
-        $('#categories-tbody').on('click', 'a.btn-delete', function (e) {
-            e.preventDefault();
-            var id = $(this).data('id');
-            if (id != null) {
-                window.location.href = contextPath + 'admin/categories/ajax/delete?id=' + encodeURIComponent(id);
-            }
-        });
 
-    });
-    function gqlRequest(query, variables) {
-        return $.ajax({
-            url: graphqlEndpoint,
-            method: 'POST',
-            contentType: 'application/json',
-            data: JSON.stringify({ query: query, variables: variables || {} })
-        }).then(function (res) {
-            if (res.errors) {
-                throw (res.errors[0] && res.errors[0].message) || 'GraphQL error';
-            }
-            return res.data;
-        });
-    }
-
-    $("form#addCategory").submit(function (e) {
-        e.preventDefault();
-        const variables = { input: { categoryName: $('#new_categoryname').val(), images: $('#new_images').val() } };
-        gqlRequest("mutation($input: CategoryInput!){ createCategory(input: $input){ categoryId categoryName images } }", variables)
-            .then(function(){
-                try {
-                    var el = document.getElementById('createCategoryModal');
-                    var modal = bootstrap.Modal.getInstance(el) || new bootstrap.Modal(el);
-                    modal.hide();
-                } catch (e) {
-                    $('#createCategoryModal').modal('hide');
+            // Navigation handlers
+            $('#categories-tbody').on('click', 'a.btn-edit', function (e) {
+                e.preventDefault();
+                var id = $(this).data('id');
+                if (id != null) {
+                    window.location.href = contextPath + 'admin/categories/ajax/update?id=' + encodeURIComponent(id);
                 }
-                if (typeof loadCategories === 'function') loadCategories();
-            })
-            .catch(function(err){ alert('Error: ' + err); });
-    });
-
-    function showCreateNewCategoryModal() {
-        $('#new_categoryname').val('');
-        $('#new_images').val('');
-        try {
-            var el = document.getElementById('createCategoryModal');
-            var modal = bootstrap.Modal.getInstance(el) || new bootstrap.Modal(el);
-            modal.show();
-        } catch (e) {
-            $('#createCategoryModal').modal('show');
-        }
-    }
-
-    function loadCategories() {
-        $.getJSON(contextPath + 'api/category', function (json) {
-            console.log("API response:", json); // xem dữ liệu
-            var categories = Array.isArray(json) ? json : (json && json.body) ? json.body : [];
-            console.log("Categories:", categories);
-
-            var rows = [];
-            categories.forEach(c => {
-                rows.push('<tr>');
-                rows.push('<td>' + (c.categoryId ?? '') + '</td>');
-                rows.push('<td>' + (c.icon
-                    ? '<img src="' + contextPath + 'admin/categories/images/' + c.icon + '" style="width:70px">'
-                    : '<span class="text-muted">No icon</span>') + '</td>');
-                rows.push('<td>' + (c.categoryName ?? '') + '</td>');
-                rows.push('<td>' +
-                    '<a href="#" data-id="' + c.categoryId + '" class="btn btn-outline-warning me-1 btn-edit" title="Sửa"><i class="fa fa-edit"></i></a>' +
-                    '<a href="#" data-id="' + c.categoryId + '" class="btn btn-outline-danger btn-delete" title="Xóa"><i class="fa fa-trash"></i></a>' +
-                    '</td>');
-                rows.push('</tr>');
             });
-            $('#categories-tbody').html(rows.join(''));
-        }).fail(function (xhr, status, error) {
-            console.error("AJAX error:", status, error);
-        });
-    }
 
-</script>
+            $('#categories-tbody').on('click', 'a.btn-delete', function (e) {
+                e.preventDefault();
+                var id = $(this).data('id');
+                if (id != null) {
+                    window.location.href = contextPath + 'admin/categories/ajax/delete?id=' + encodeURIComponent(id);
+                }
+            });
+        });
+
+        function gqlRequest(query, variables) {
+            return $.ajax({
+                url: graphqlEndpoint,
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({ query: query, variables: variables || {} })
+            }).then(function (res) {
+                console.log("Raw GraphQL response:", res);
+                if (res.errors) {
+                    throw (res.errors[0] && res.errors[0].message) || 'GraphQL error';
+                }
+                return res.data;
+            });
+        }
+
+        function showCreateNewCategoryModal() {
+            $('#new_categoryname').val('');
+            $('#new_icon').val(''); // Fixed: was new_images
+            try {
+                var el = document.getElementById('createCategoryModal');
+                var modal = bootstrap.Modal.getInstance(el) || new bootstrap.Modal(el);
+                modal.show();
+            } catch (e) {
+                $('#createCategoryModal').modal('show');
+            }
+        }
+
+        function loadCategories() {
+            const query = `
+        query {
+            categories {
+                categoryId
+                categoryName
+                images
+            }
+        }
+        `;
+
+            gqlRequest(query)
+                .then(function(data) {
+                    console.log("Categories from GraphQL:", data);
+                    var categories = data.categories || []; // Change from getAllCategories to categories
+
+                    var rows = [];
+                    categories.forEach(c => {
+                        rows.push('<tr>');
+                        rows.push('<td>' + (c.categoryId ?? '') + '</td>');
+                        rows.push('<td>' + (c.images
+                            ? '<img src="' + contextPath + 'admin/categories/images/' + c.images + '" style="width:70px">'
+                            : '<span class="text-muted">No icon</span>') + '</td>');
+                        rows.push('<td>' + (c.categoryName ?? '') + '</td>');
+                        rows.push('<td>' +
+                            '<a href="#" data-id="' + c.categoryId + '" class="btn btn-outline-warning me-1 btn-edit" title="Sửa"><i class="fa fa-edit"></i></a>' +
+                            '<a href="#" data-id="' + c.categoryId + '" class="btn btn-outline-danger btn-delete" title="Xóa"><i class="fa fa-trash"></i></a>' +
+                            '</td>');
+                        rows.push('</tr>');
+                    });
+                    $('#categories-tbody').html(rows.join(''));
+                })
+                .catch(function(error) {
+                    console.error("Error loading categories:", error);
+                });
+        }
+
+    </script>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
 </div>
 </body>

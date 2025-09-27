@@ -12,4 +12,6 @@ public interface IStorageService {
     Resource loadAsResource(String filename);
     void store(MultipartFile file, String storeFilename);
     String getStorageFilename(MultipartFile file, String id);
+
+    String getStorageLocation();
 }

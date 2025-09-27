@@ -4,11 +4,14 @@
       layout:decorate="~{admin/layout-admin}">
 <head>
     <meta charset="UTF-8">
-    <title>Xóa danh mục (AJAX)</title>
+    <title>Xóa danh mục (AJAX + GraphQL)</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" crossorigin="anonymous">
+    <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
     <script th:inline="javascript">
         /*<![CDATA[*/
         var contextPath = /*[[@{/}]]*/ '/';
         if (contextPath && !contextPath.endsWith('/')) { contextPath = contextPath + '/'; }
+        var graphqlEndpoint = contextPath + 'graphql';
         /*]]>*/
     </script>
 </head>
@@ -23,7 +26,7 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
                 </div>
                 <div class="modal-body">
-                    <p>Bạn có chắc chắn muốn xóa category này?</p>
+                    <p>Bạn có chắc chắn muốn xóa danh mục này?</p>
                     <input type="hidden" id="delete_categoryid">
                 </div>
                 <div class="modal-footer">
@@ -35,10 +38,25 @@
     </div>
 
     <script type="text/javascript">
+        function gqlRequest(query, variables) {
+            return $.ajax({
+                url: graphqlEndpoint,
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({ query: query, variables: variables || {} })
+            }).then(function (res) {
+                if (res.errors) {
+                    throw (res.errors[0] && res.errors[0].message) || 'GraphQL error';
+                }
+                return res.data;
+            });
+        }
+
         function getQueryParam(name) {
             const urlParams = new URLSearchParams(window.location.search);
             return urlParams.get(name);
         }
+
         function goBackToList() {
             window.location.href = contextPath + 'admin/categories/ajax/list';
         }
@@ -60,12 +78,11 @@
 
             $('#btnConfirmDelete').on('click', function () {
                 var idDel = $('#delete_categoryid').val();
-                $.ajax({
-                    url: contextPath + 'api/category/deleteCategory?categoryId=' + encodeURIComponent(idDel),
-                    type: 'DELETE',
-                    dataType: 'json',
-                    success: function (res) {
-                        if (res && (res.status === true || res.status === 'true')) {
+                // Remove parseInt - pass as string like in product example
+                gqlRequest(`mutation($id: ID!) { deleteCategory(id: $id) }`, { id: idDel })
+                    .then(function (data) {
+                        var ok = data && data.deleteCategory === true;
+                        if (ok) {
                             try {
                                 var delEl2 = document.getElementById('deleteCategoryModal');
                                 var modal2 = bootstrap.Modal.getInstance(delEl2) || new bootstrap.Modal(delEl2);
@@ -75,20 +92,23 @@
                             }
                             goBackToList();
                         } else {
-                            alert(res && res.message ? res.message : 'Xóa thất bại');
+                            alert('Xóa thất bại');
                         }
-                    },
-                    error: function (xhr) {
-                        alert('Lỗi gọi API: ' + (xhr.responseText || xhr.status));
-                    }
-                });
+                    })
+                    .catch(function (err) {
+                        console.error("Delete error:", err);
+                        alert('Lỗi: ' + err);
+                    });
             });
+
 
             $('#deleteCategoryModal').on('hidden.bs.modal', function () {
                 goBackToList();
             });
         });
     </script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
+
 </div>
 </body>
 </html>

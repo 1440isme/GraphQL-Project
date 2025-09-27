@@ -24,6 +24,11 @@ public class FileSystemStorageServiceImpl implements IStorageService {
         return "p" + id + "." + ext;
     }
 
+    @Override
+    public String getStorageLocation() {
+        return rootLocation.toString();
+    }
+
     public FileSystemStorageServiceImpl(StorageProperties properties) {
         this.rootLocation = Paths.get(properties.getLocation());
     }

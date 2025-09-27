@@ -14,6 +14,7 @@ import org.springframework.ui.ModelMap;
 import org.springframework.util.StringUtils;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import vn.binh.graphqlproject.entity.Category;
@@ -21,7 +22,13 @@ import vn.binh.graphqlproject.model.CategoryModel;
 import vn.binh.graphqlproject.service.ICategoryService;
 import vn.binh.graphqlproject.service.IStorageService;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @Controller
@@ -69,77 +76,43 @@ public class CategoryController {
         categoryService.delete(opt.get());
         return true;
     }
+    @MutationMapping
+    public Category createCategoryWithFile(@Argument String categoryName, @RequestParam(value = "imageFile", required = false) MultipartFile imageFile) {
+        Category category = new Category();
+        category.setCategoryName(categoryName);
 
-    @GetMapping("add")
-    public String add(ModelMap model) {
-        CategoryModel cateModel = new CategoryModel();
-        cateModel.setIsEdit(false);
-        model.addAttribute("category", cateModel);
-        return "admin/categories/addOrEdit";
-    }
+        // Handle file upload
+        if (imageFile != null && !imageFile.isEmpty()) {
+            try {
+                // Validate file type
+                String contentType = imageFile.getContentType();
+                if (contentType == null || !contentType.startsWith("image/")) {
+                    throw new RuntimeException("File must be an image");
+                }
 
-    @PostMapping("saveOrUpdate")
-    public String saveOrUpdate(ModelMap model, @Valid @ModelAttribute("category") CategoryModel cateModel,
-            BindingResult result, RedirectAttributes redirectAttributes) {
-        if (result.hasErrors()) {
-            return "admin/categories/addOrEdit";
+                long maxSize = 5 * 1024 * 1024; // 5MB
+                if (imageFile.getSize() > maxSize) {
+                    throw new RuntimeException("File size must not exceed 5MB");
+                }
+
+                // Save file to the local storage path
+                String storageLocation = storageService.getStorageLocation(); // Retrieve from `application.properties`
+                String fileName = StringUtils.cleanPath(imageFile.getOriginalFilename());
+                Path targetLocation = Paths.get(storageLocation).resolve(fileName);
+                Files.copy(imageFile.getInputStream(), targetLocation, StandardCopyOption.REPLACE_EXISTING);
+
+                // Set the file name in the category
+                category.setImages(fileName);
+            } catch (Exception e) {
+                throw new RuntimeException("File upload error: " + e.getMessage());
+            }
         }
-        Category entity = new Category();
-        BeanUtils.copyProperties(cateModel, entity);
-        categoryService.save(entity);
 
-        String message = "";
-        if (Boolean.TRUE.equals(cateModel.getIsEdit())) {
-            message = "Category is Edited";
-        } else {
-            message = "Category is saved";
-        }
-        redirectAttributes.addFlashAttribute("message", message);
-        return "redirect:/admin/categories/searchpaginate";
+        // Save the category
+        return categoryService.save(category);
     }
 
-    @RequestMapping("")
-    public String list(ModelMap model) {
-        List<Category> list = categoryService.findAll();
-        model.addAttribute("categories", list);
-        return "admin/categories/list";
-    }
 
-    @GetMapping("edit/{id}")
-    public ModelAndView edit(ModelMap model, @PathVariable("id") Long id) {
-        Optional<Category> optCategory = categoryService.findById(id);
-        CategoryModel cateModel = new CategoryModel();
-
-        if (optCategory.isPresent()) {
-            Category entity = optCategory.get();
-            BeanUtils.copyProperties(entity, cateModel);
-            cateModel.setIsEdit(true);
-            model.addAttribute("category", cateModel);
-            return new ModelAndView("admin/categories/addOrEdit", model);
-        } else {
-            model.addAttribute("message", "Category is not exist");
-            return new ModelAndView("forward:/admin/categories", model);
-        }
-    }
-
-    @GetMapping("delete/{id}")
-    public ModelAndView delete(ModelMap model, @PathVariable("id") Long id) {
-        categoryService.deleteById(id);
-        model.addAttribute("message", "Category is deleted");
-        return new ModelAndView("forward:/admin/categories", model);
-    }
-
-    @GetMapping("search")
-    public String search(ModelMap model, @RequestParam(name = "name", required = false) String name) {
-        List<Category> list;
-        if (StringUtils.hasText(name)) {
-            list = categoryService.findByCategoryNameContaining(name);
-        } else {
-            list = categoryService.findAll();
-        }
-        model.addAttribute("categories", list);
-        return "admin/categories/search";
-    }
 
     // Các view phục vụ render bằng AJAX
     @GetMapping("ajax/list")
